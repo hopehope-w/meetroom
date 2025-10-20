@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>211 会议室预约</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Microsoft YaHei', sans-serif; margin:0; background:#f7f7f7; }
+    header { background:#2c3e50; color:#fff; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
+    .container { padding:16px; max-width:900px; margin:0 auto; }
+    .card { background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+    .row { display:flex; flex-wrap:wrap; gap:12px; }
+    .col { flex:1 1 260px; }
+    label { display:block; font-size:14px; color:#555; margin-bottom:6px; }
+    input, button, select { width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; }
+    button { background:#3b82f6; color:#fff; cursor:pointer; border:none; }
+    button.secondary { background:#64748b; }
+    button.danger { background:#ef4444; }
+    .status { font-size:13px; color:#555; margin-top:8px; }
+    .notification { position:fixed; top:20px; right:20px; padding:12px 20px; border-radius:6px; color:#fff; font-weight:bold; z-index:1000; }
+    .notification.success { background:#10b981; }
+    .notification.error { background:#ef4444; }
+    .notification.info { background:#3b82f6; }
+    .notification.warning { background:#f59e0b; }
+    .tag { padding:2px 6px; border-radius:4px; font-size:12px; color:#fff; }
+    .tag.pending { background:#f59e0b; }
+    .tag.approved { background:#10b981; }
+    .tag.rejected { background:#ef4444; }
+    .calendar { display:grid; grid-template-columns: repeat(1, 1fr); gap:8px; }
+    .item { background:#fff; border:1px solid #eee; padding:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; }
+    .muted { color:#666; font-size:12px; }
+    .qr { text-align:center; }
+    @media (min-width: 700px) { .calendar { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+  <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/vue-router@4"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div>211 会议室预约</div>
+      <nav>
+        <a href="#/" style="color:#fff; margin-right:12px;">预约</a>
+        <a href="#/admin" style="color:#fff;">管理员</a>
+      </nav>
+    </header>
+    <div class="container">
+      <router-view></router-view>
+    </div>
+    <!-- 通知组件 -->
+    <div v-if="notification.show" :class="['notification', notification.type]">
+      {{ notification.message }}
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (location.hostname === 'localhost' ? 'http://localhost:5000' : `http://${location.hostname}:5000`);
+
+    const BookingForm = {
+      template: `
+        <div>
+          <div class='card'>
+            <h3>提交预约（房间 211）</h3>
+            <div class='row'>
+              <div class='col'>
+                <label>预约人姓名</label>
+                <input v-model.trim="user_name" placeholder="如：张三" />
+              </div>
+              <div class='col'>
+                <label>部门</label>
+                <input v-model.trim="department" placeholder="如：技术部" />
+              </div>
+            </div>
+            <div class='row'>
+              <div class='col'>
+                <label>开始时间</label>
+                <input type='datetime-local' v-model="start_time" />
+              </div>
+              <div class='col'>
+                <label>结束时间</label>
+                <input type='datetime-local' v-model="end_time" />
+              </div>
+            </div>
+            <div style='margin-top:12px; display:flex; gap:8px;'>
+              <button @click="submit" :disabled="loading">提交预约</button>
+              <button class="secondary" @click="check" :disabled="loading">检查冲突</button>
+            </div>
+            <div class='status'>{{ statusMsg }}</div>
+          </div>
+
+          <div class='card'>
+            <h3>未来预约列表</h3>
+            <div v-if="loadingList" class='status'>加载中...</div>
+            <div v-else class='calendar'>
+              <div v-for="b in bookings" :key="b.id" class='item'>
+                <div>
+                  <div>{{ b.user_name }}{{ b.department ? ' (' + b.department + ')' : '' }}</div>
+                  <div class='muted'>{{ b.start_time.replace('T',' ') }} - {{ b.end_time.replace('T',' ') }}</div>
+                </div>
+                <span class="tag" :class="b.status">{{ b.status }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class='card'>
+            <h3>查询我的预约状态</h3>
+            <div class='row'>
+              <div class='col'>
+                <label>输入您的姓名</label>
+                <input v-model.trim="queryName" placeholder="如：张三" />
+              </div>
+              <div class='col' style='display:flex; align-items:end;'>
+                <button @click="queryMyBookings" :disabled="loadingQuery">查询状态</button>
+              </div>
+            </div>
+            <div v-if="loadingQuery" class='status'>查询中...</div>
+            <div v-else-if="myBookings.length > 0" style='margin-top:16px;'>
+              <h4>您的预约记录：</h4>
+              <div class='calendar'>
+                <div v-for="booking in myBookings" :key="booking.id" class='item'>
+                  <div>
+                    <div>{{ booking.department ? booking.department : '未填写部门' }}</div>
+                    <div class='muted'>{{ formatDateTime(booking.start_time) }} - {{ formatDateTime(booking.end_time) }}</div>
+                    <div class='muted'>提交时间：{{ formatDateTime(booking.created_at) }}</div>
+                  </div>
+                  <span class="tag" :class="booking.status">
+                    {{ getStatusText(booking.status) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="queryName && !loadingQuery" class='muted' style='margin-top:16px;'>
+              未找到您的预约记录
+            </div>
+          </div>
+
+
+        </div>
+      `,
+      inject: ['showNotification'],
+      data() {
+        return {
+          user_name:'',
+          department:'',
+          start_time:'',
+          end_time:'',
+          statusMsg:'',
+          loading:false,
+          bookings:[],
+          loadingList:false,
+          pollTimer:null,
+          queryName:'',
+          myBookings:[],
+          loadingQuery:false
+        }
+      },
+      methods: {
+        toIsoLocal(v){
+          if(!v) return '';
+          const dt = new Date(v);
+          const pad=n=>String(n).padStart(2,'0');
+          return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:00`;
+        },
+        async submit(){
+          if(!this.user_name||!this.start_time||!this.end_time){ 
+            this.statusMsg='请填写完整信息'; 
+            return; 
+          }
+          this.loading=true; 
+          this.statusMsg='提交中...';
+          try{
+            const body={ 
+              user_name:this.user_name, 
+              department:this.department,
+              start_time:this.toIsoLocal(this.start_time), 
+              end_time:this.toIsoLocal(this.end_time) 
+            };
+            const resp = await fetch(`${API_BASE}/api/bookings`, { 
+              method:'POST', 
+              headers:{'Content-Type':'application/json'}, 
+              body:JSON.stringify(body) 
+            });
+            const data = await resp.json();
+            if(resp.ok){
+              this.statusMsg='已提交，等待管理员审批';
+              this.showNotification('预约提交成功！等待管理员审批', 'success');
+              this.fetchList();
+              // 清空表单
+              this.user_name = '';
+              this.department = '';
+              this.start_time = '';
+              this.end_time = '';
+            }
+            else if(resp.status===409){
+              this.statusMsg='时间冲突，请更换时间';
+              this.showNotification('时间冲突，请选择其他时间段', 'error');
+            }
+            else {
+              this.statusMsg = data.error || '提交失败';
+              this.showNotification(data.error || '提交失败', 'error');
+            }
+          }catch(e){ 
+            this.statusMsg='网络错误'; 
+          }
+          this.loading=false;
+        },
+        async check(){
+          if(!this.start_time||!this.end_time){ 
+            this.statusMsg='请先选择时间'; 
+            return; 
+          }
+          try{
+            const url = `${API_BASE}/api/availability?start=${encodeURIComponent(this.toIsoLocal(this.start_time))}&end=${encodeURIComponent(this.toIsoLocal(this.end_time))}`;
+            const r = await fetch(url);
+            const d = await r.json();
+            this.statusMsg = d.conflict ? '该时段已有预约' : '该时段可用';
+            this.showNotification(d.conflict ? '该时段已有预约' : '该时段可用', d.conflict ? 'warning' : 'success');
+          }catch(e){ 
+            this.statusMsg='检查失败'; 
+          }
+        },
+        async fetchList(){
+          this.loadingList=true;
+          try{
+            const now = new Date();
+            // 获取从今天开始到未来30天的预约
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            const end = new Date(start.getTime() + 30*24*3600*1000); // 未来30天
+            const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+            const url = `${API_BASE}/api/bookings?start=${encodeURIComponent(fmt(start))}&end=${encodeURIComponent(fmt(end))}`;
+            const r = await fetch(url);
+            const newBookings = await r.json();
+
+            // 只显示未来的预约（开始时间 >= 当前时间）
+            const currentTime = now.toISOString();
+            const futureBookings = newBookings.filter(b => b.start_time >= currentTime);
+
+            // 检查状态变化
+            if (this.bookings.length > 0) {
+              futureBookings.forEach(newBooking => {
+                const oldBooking = this.bookings.find(b => b.id === newBooking.id);
+                if (oldBooking && oldBooking.status !== newBooking.status) {
+                  if (newBooking.status === 'approved') {
+                    this.showNotification(`您的预约已被批准！`, 'success');
+                  } else if (newBooking.status === 'rejected') {
+                    this.showNotification(`您的预约已被拒绝`, 'error');
+                  }
+                }
+              });
+            }
+
+            this.bookings = futureBookings;
+          } finally {
+            this.loadingList=false;
+          }
+        },
+        async queryMyBookings(){
+          if(!this.queryName.trim()){
+            this.showNotification('请输入您的姓名', 'warning');
+            return;
+          }
+          this.loadingQuery = true;
+          try{
+            const url = `${API_BASE}/api/my-bookings?user_name=${encodeURIComponent(this.queryName.trim())}`;
+            const r = await fetch(url);
+            if(r.ok) {
+              this.myBookings = await r.json();
+              if(this.myBookings.length === 0) {
+                this.showNotification('未找到您的预约记录', 'info');
+              } else {
+                this.showNotification(`找到 ${this.myBookings.length} 条预约记录`, 'success');
+              }
+            } else {
+              this.showNotification('查询失败，请稍后重试', 'error');
+            }
+          } catch(e) {
+            this.showNotification('网络错误', 'error');
+          } finally {
+            this.loadingQuery = false;
+          }
+        },
+        formatDateTime(isoString) {
+          if(!isoString) return '';
+          return isoString.replace('T', ' ').substring(0, 16);
+        },
+        getStatusText(status) {
+          const statusMap = {
+            'pending': '待审批',
+            'approved': '已批准',
+            'rejected': '已拒绝'
+          };
+          return statusMap[status] || status;
+        },
+
+        startPolling(){
+          this.pollTimer = setInterval(()=>this.fetchList(), 30000);
+        }
+      },
+      mounted(){
+        this.fetchList();
+        this.startPolling();
+      },
+      unmounted(){ 
+        if(this.pollTimer) clearInterval(this.pollTimer); 
+      }
+    }
+
+    const AdminPanel = {
+      template: `
+        <div>
+          <div class='card'>
+            <h3>管理员登录</h3>
+            <div class='row'>
+              <div class='col'>
+                <label>账号</label>
+                <input v-model="username" placeholder="zy"/>
+              </div>
+              <div class='col'>
+                <label>密码</label>
+                <input v-model="password" type='password' placeholder="密码"/>
+              </div>
+            </div>
+            <div style='margin-top:12px;'>
+              <button @click="login">登录</button>
+            </div>
+            <div class='status'>{{ msg }}</div>
+          </div>
+          
+          <div v-if="token" class='card'>
+            <h3>待审批列表</h3>
+            <div v-if="pending.length === 0" class='muted'>暂无待审批预约</div>
+            <div v-for="b in pending" :key="b.id" class='item'>
+              <div>
+                <div>{{ b.user_name }}{{ b.department ? ' (' + b.department + ')' : '' }}</div>
+                <div class='muted'>{{ formatTime(b.start_time) }} - {{ formatTime(b.end_time) }}</div>
+              </div>
+              <div style='display:flex; gap:6px;'>
+                <button @click="approve(b.id)">批准</button>
+                <button class='danger' @click="reject(b.id)">拒绝</button>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="token" class='card'>
+            <h3>未来5个工作日预约统计</h3>
+            <div v-if="statsData.current_info" class='muted' style='margin-bottom:12px;'>
+              当前时间：{{ statsData.current_info.current_date }} {{ statsData.current_info.current_time }}
+              <span style='margin-left:12px;'>最后更新：{{ formatTime(statsData.current_info.last_updated) }}</span>
+            </div>
+            <div v-if="statsData.total === 0" class='muted'>未来5个工作日无预约记录</div>
+            <div v-else>
+              <div style='margin-bottom:16px;'>总预约数：{{ statsData.total }}</div>
+              <div class='calendar'>
+                <div v-for="day in statsData.days" :key="day" class='item'>
+                  <div>{{ formatDate(day) }}</div>
+                  <div>{{ (statsData.by_day[day] || []).length }} 个预约</div>
+                </div>
+              </div>
+            </div>
+            <div style='margin-top:12px;'>
+              <button @click="refreshStats" :disabled="loadingStats">刷新统计</button>
+            </div>
+          </div>
+
+          <div v-if="token" class='card'>
+            <h3>数据库管理</h3>
+            <div v-if="dbInfo">
+              <div style='margin-bottom:16px;'>
+                <div>总预约记录：{{ dbInfo.total_bookings }} 条</div>
+                <div>最近一周：{{ dbInfo.recent_week }} 条</div>
+                <div>最近一月：{{ dbInfo.recent_month }} 条</div>
+                <div>超过30天：{{ dbInfo.old_data_count }} 条</div>
+              </div>
+              <div class='muted' style='margin-bottom:12px;'>
+                {{ dbInfo.cleanup_threshold }}
+              </div>
+              <div style='display:flex; gap:8px;'>
+                <button @click="refreshDbInfo" :disabled="loadingDbInfo">刷新统计</button>
+                <button class='secondary' @click="manualCleanup" :disabled="loadingCleanup">
+                  手动清理30天前数据
+                </button>
+              </div>
+              <div v-if="cleanupResult" class='status' style='margin-top:8px;'>
+                {{ cleanupResult }}
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      inject: ['showNotification'],
+      data(){
+        return {
+          username:'zy',
+          password:'',
+          token:'',
+          msg:'',
+          pending:[],
+          statsData:{days:[], by_day:{}, total:0, current_info:null},
+          dbInfo:null,
+          loadingDbInfo:false,
+          loadingCleanup:false,
+          cleanupResult:'',
+          loadingStats:false,
+          statsTimer:null
+        }
+      },
+      methods:{
+        async login(){
+          this.msg='登录中...';
+          try{ 
+            const r=await fetch(`${API_BASE}/api/login`,{
+              method:'POST', 
+              headers:{'Content-Type':'application/json'}, 
+              body:JSON.stringify({username:this.username,password:this.password})
+            });
+            const d=await r.json(); 
+            if(r.ok){
+              this.token=d.token;
+              this.msg='登录成功';
+              this.showNotification('登录成功！', 'success');
+              this.load();
+            }
+            else {
+              this.msg=d.error||'登录失败';
+              this.showNotification(d.error||'登录失败', 'error');
+            }
+          }catch(e){ 
+            this.msg='网络错误'; 
+          }
+        },
+        async load(){
+          try {
+            const all = await (await fetch(`${API_BASE}/api/bookings`)).json();
+            this.pending = all.filter(b=>b.status==='pending');
+            await this.refreshStats();
+            // 加载数据库信息
+            await this.refreshDbInfo();
+            // 启动统计自动刷新
+            this.startStatsPolling();
+          } catch(e) {
+            console.error('加载数据失败:', e);
+          }
+        },
+        async approve(id){
+          await this.update(id,'approved');
+          this.showNotification('预约已批准', 'success');
+        },
+        async reject(id){
+          await this.update(id,'rejected');
+          this.showNotification('预约已拒绝', 'info');
+        },
+        async update(id, status){
+          const r = await fetch(`${API_BASE}/api/bookings/${id}`, {
+            method:'PUT', 
+            headers:{
+              'Content-Type':'application/json',
+              'Authorization':`Bearer ${this.token}`
+            }, 
+            body:JSON.stringify({status})
+          });
+          if(r.ok){ 
+            this.load(); 
+          }
+        },
+        formatTime(isoString) {
+          return isoString.replace('T', ' ').substring(0, 16);
+        },
+        formatDate(dateString) {
+          const date = new Date(dateString);
+          const today = new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(today.getDate() + 1);
+
+          const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+          let dayLabel = '';
+
+          // 使用本地日期字符串进行比较
+          const todayStr = today.getFullYear() + '-' +
+                          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                          String(today.getDate()).padStart(2, '0');
+          const tomorrowStr = tomorrow.getFullYear() + '-' +
+                             String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' +
+                             String(tomorrow.getDate()).padStart(2, '0');
+
+          if (dateString === todayStr) {
+            dayLabel = '今天';
+          } else if (dateString === tomorrowStr) {
+            dayLabel = '明天';
+          } else {
+            dayLabel = weekdays[date.getDay()];
+          }
+
+          return `${dateString} (${dayLabel})`;
+        },
+        async refreshDbInfo() {
+          this.loadingDbInfo = true;
+          try {
+            const r = await fetch(`${API_BASE}/api/database-info`, {
+              headers: {'Authorization': `Bearer ${this.token}`}
+            });
+            if (r.ok) {
+              this.dbInfo = await r.json();
+            }
+          } catch(e) {
+            console.error('获取数据库信息失败:', e);
+          } finally {
+            this.loadingDbInfo = false;
+          }
+        },
+        async manualCleanup() {
+          if (!confirm('确定要清理30天前的历史数据吗？此操作不可恢复。')) {
+            return;
+          }
+          this.loadingCleanup = true;
+          this.cleanupResult = '';
+          try {
+            const r = await fetch(`${API_BASE}/api/cleanup`, {
+              method: 'POST',
+              headers: {'Authorization': `Bearer ${this.token}`}
+            });
+            const result = await r.json();
+            if (r.ok && result.success) {
+              this.cleanupResult = result.message;
+              this.showNotification(result.message, 'success');
+              // 刷新数据库信息
+              await this.refreshDbInfo();
+            } else {
+              this.cleanupResult = result.error || '清理失败';
+              this.showNotification(result.error || '清理失败', 'error');
+            }
+          } catch(e) {
+            this.cleanupResult = '网络错误';
+            this.showNotification('网络错误', 'error');
+          } finally {
+            this.loadingCleanup = false;
+          }
+        },
+        async refreshStats() {
+          this.loadingStats = true;
+          try {
+            const r = await fetch(`${API_BASE}/api/stats`, {
+              headers:{'Authorization':`Bearer ${this.token}`}
+            });
+            if (r.ok) {
+              this.statsData = await r.json();
+            }
+          } catch(e) {
+            console.error('刷新统计失败:', e);
+          } finally {
+            this.loadingStats = false;
+          }
+        },
+        startStatsPolling() {
+          // 每60秒自动刷新统计数据
+          this.statsTimer = setInterval(() => {
+            this.refreshStats();
+          }, 60000);
+        },
+        stopStatsPolling() {
+          if (this.statsTimer) {
+            clearInterval(this.statsTimer);
+            this.statsTimer = null;
+          }
+        }
+      },
+      unmounted() {
+        this.stopStatsPolling();
+      }
+    }
+
+    const routes = [
+      { path: '/', component: BookingForm },
+      { path: '/admin', component: AdminPanel }
+    ];
+
+    const router = VueRouter.createRouter({
+      history: VueRouter.createWebHashHistory(),
+      routes
+    });
+
+    const app = Vue.createApp({
+      data() {
+        return {
+          notification: {
+            show: false,
+            message: '',
+            type: 'info'
+          }
+        }
+      },
+      methods: {
+        showNotification(message, type = 'info', duration = 3000) {
+          this.notification = {
+            show: true,
+            message: message,
+            type: type
+          };
+          setTimeout(() => {
+            this.notification.show = false;
+          }, duration);
+        }
+      },
+      provide() {
+        return {
+          showNotification: this.showNotification
+        }
+      }
+    });
+
+    app.use(router);
+    app.mount('#app');
+  </script>
+</body>
+</html>
