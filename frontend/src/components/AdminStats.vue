@@ -4,7 +4,7 @@
       <div class="card-header">
         <div>
           <p class="eyebrow">Ops Snapshot</p>
-          <h3>未来 5 个工作日统计</h3>
+          <h3>未来 5 个工作日概览</h3>
         </div>
         <el-button type="primary" plain :loading="loading" @click="refreshStats">刷新</el-button>
       </div>
@@ -13,20 +13,29 @@
     <el-skeleton v-if="loading" :rows="4" animated />
 
     <div v-else class="stats-wrap">
-      <el-alert
-        v-if="statsData.current_info"
-        :title="`当前日期 ${statsData.current_info.current_date}，更新时间 ${statsData.current_info.current_time}`"
-        type="info"
-        :closable="false"
-        show-icon
-      />
-
-      <el-statistic title="预约总数" :value="statsData.total" />
+      <div class="headline-grid">
+        <div class="headline-card">
+          <span>预约总数</span>
+          <strong>{{ statsData.total }}</strong>
+        </div>
+        <div class="headline-card">
+          <span>当前日期</span>
+          <strong>{{ statsData.current_info?.current_date || '--' }}</strong>
+        </div>
+        <div class="headline-card">
+          <span>更新时间</span>
+          <strong>{{ statsData.current_info?.current_time || '--' }}</strong>
+        </div>
+      </div>
 
       <el-table :data="tableRows" stripe>
-        <el-table-column prop="date" label="日期" min-width="160" />
+        <el-table-column prop="date" label="日期" min-width="160">
+          <template #default="{ row }">
+            {{ formatShortDate(row.date) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="count" label="预约数" width="100" />
-        <el-table-column label="详情" min-width="240">
+        <el-table-column label="详情" min-width="260">
           <template #default="{ row }">
             <div v-if="row.bookings.length === 0" class="muted">暂无预约</div>
             <div v-else class="row-bookings">
@@ -35,7 +44,7 @@
                 :key="booking.id"
                 :type="getStatusType(booking.status)"
               >
-                {{ booking.user_name }} / {{ booking.status }}
+                {{ booking.user_name }} / {{ getStatusLabel(booking.status) }}
               </el-tag>
             </div>
           </template>
@@ -49,6 +58,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { bookingAPI } from '../api/booking'
 import { useNotificationStore } from '../stores/notification'
+import { formatShortDate, getStatusLabel, getStatusType } from '../utils/helpers'
 
 const notification = useNotificationStore()
 
@@ -61,12 +71,6 @@ const statsData = ref({
 
 const loading = ref(false)
 let pollTimer = null
-
-const getStatusType = (status) => {
-  if (status === 'approved') return 'success'
-  if (status === 'rejected') return 'danger'
-  return 'warning'
-}
 
 const tableRows = computed(() =>
   statsData.value.days.map((day) => ({
@@ -102,8 +106,8 @@ onUnmounted(() => {
 <style scoped>
 .admin-card {
   border: none;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  box-shadow: 0 24px 54px rgba(16, 32, 39, 0.08);
 }
 
 .card-header {
@@ -118,17 +122,43 @@ onUnmounted(() => {
   font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: #176b5f;
 }
 
 h3 {
   margin: 0;
-  color: #0f172a;
+  color: #102027;
 }
 
 .stats-wrap {
   display: grid;
-  gap: 16px;
+  gap: 18px;
+}
+
+.headline-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.headline-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(243, 247, 249, 0.92);
+}
+
+.headline-card span {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a6f78;
+}
+
+.headline-card strong {
+  font-size: 20px;
+  color: #102027;
 }
 
 .row-bookings {
@@ -139,5 +169,11 @@ h3 {
 
 .muted {
   color: #64748b;
+}
+
+@media (max-width: 768px) {
+  .headline-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

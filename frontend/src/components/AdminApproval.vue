@@ -6,7 +6,10 @@
           <p class="eyebrow">Approval Queue</p>
           <h3>待审批预约</h3>
         </div>
-        <el-button type="primary" plain :loading="loading" @click="refresh">刷新</el-button>
+        <div class="header-side">
+          <el-tag type="warning" effect="plain">待处理 {{ pendingBookings.length }}</el-tag>
+          <el-button type="primary" plain :loading="loading" @click="refresh">刷新</el-button>
+        </div>
       </div>
     </template>
 
@@ -15,7 +18,11 @@
 
     <el-table v-else :data="pendingBookings" stripe>
       <el-table-column prop="user_name" label="预约人" min-width="110" />
-      <el-table-column prop="department" label="部门" min-width="120" />
+      <el-table-column prop="department" label="部门" min-width="120">
+        <template #default="{ row }">
+          {{ row.department || '未填写' }}
+        </template>
+      </el-table-column>
       <el-table-column label="开始时间" min-width="160">
         <template #default="{ row }">
           {{ formatDateTime(row.start_time) }}
@@ -47,6 +54,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { bookingAPI } from '../api/booking'
 import { useNotificationStore } from '../stores/notification'
+import { formatDateTime } from '../utils/helpers'
 
 const notification = useNotificationStore()
 const allBookings = ref([])
@@ -55,8 +63,6 @@ const loading = ref(false)
 let pollTimer = null
 
 const pendingBookings = computed(() => allBookings.value.filter((booking) => booking.status === 'pending'))
-
-const formatDateTime = (dateString) => dateString.replace('T', ' ').slice(0, 16)
 
 const refresh = async () => {
   loading.value = true
@@ -104,8 +110,8 @@ onUnmounted(() => {
 <style scoped>
 .admin-card {
   border: none;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  box-shadow: 0 24px 54px rgba(16, 32, 39, 0.08);
 }
 
 .card-header {
@@ -115,16 +121,30 @@ onUnmounted(() => {
   align-items: flex-start;
 }
 
+.header-side {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: #176b5f;
 }
 
 h3 {
   margin: 0;
-  color: #0f172a;
+  color: #102027;
+}
+
+@media (max-width: 768px) {
+  .card-header,
+  .header-side {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

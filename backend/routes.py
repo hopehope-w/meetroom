@@ -1,20 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
 from auth import admin_required
-from config import ROOM_211_ID
-from models import (
-    add_booking,
-    check_conflict,
-    cleanup_database,
-    get_booking,
-    list_bookings,
-    update_booking_status,
-)
+from config import DEFAULT_ROOM_ID, DEFAULT_ROOM_NUMBER
 from notify import send_booking_notification
+from repositories import BookingRepository
+from services import BookingService
 
 api = Blueprint("api", __name__, url_prefix="/api")
+booking_service = BookingService(BookingRepository())
 
 
 def parse_iso(value: str | None):
@@ -43,7 +38,7 @@ def serialize_booking(booking: dict) -> dict:
 def get_bookings():
     start = request.args.get("start")
     end = request.args.get("end")
-    return jsonify(list_bookings(start, end))
+    return jsonify(booking_service.list_bookings(start, end))
 
 
 @api.post("/bookings")
@@ -62,19 +57,18 @@ def create_booking():
     if not start_dt or not end_dt or end_dt <= start_dt:
         return jsonify({"error": "Invalid time range"}), 400
 
-    if check_conflict(ROOM_211_ID, start_iso, end_iso):
-        return jsonify({"error": "Time conflict for room 211"}), 409
+    if booking_service.has_conflict(DEFAULT_ROOM_ID, start_iso, end_iso):
+        return jsonify({"error": f"Time conflict for room {DEFAULT_ROOM_NUMBER}"}), 409
 
-    booking_id = add_booking(
+    booking_id = booking_service.create_booking(
         user_name=user_name,
-        room_id=ROOM_211_ID,
+        department=department or None,
+        room_id=DEFAULT_ROOM_ID,
         start_iso=start_iso,
         end_iso=end_iso,
-        status="pending",
-        department=department or None,
     )
 
-    booking = get_booking(booking_id)
+    booking = booking_service.get_booking(booking_id)
     if booking:
         send_booking_notification("新预约提交", serialize_booking(booking))
 
@@ -88,7 +82,7 @@ def availability():
     if not start_iso or not end_iso:
         return jsonify({"error": "start and end required"}), 400
 
-    conflict = check_conflict(ROOM_211_ID, start_iso, end_iso)
+    conflict = booking_service.has_conflict(DEFAULT_ROOM_ID, start_iso, end_iso)
     return jsonify({"available": not conflict, "conflict": conflict})
 
 
@@ -98,32 +92,22 @@ def get_my_bookings():
     if not user_name:
         return jsonify({"error": "user_name required"}), 400
 
-    now = datetime.utcnow()
-    start_date = now - timedelta(days=30)
-    end_date = now + timedelta(days=30)
-
-    all_bookings = list_bookings(start_date.isoformat(), end_date.isoformat())
-    user_bookings = [
-        booking
-        for booking in all_bookings
-        if (booking.get("user_name") or "").strip() == user_name
-    ]
-    return jsonify(user_bookings)
+    return jsonify(booking_service.get_recent_user_bookings(user_name))
 
 
-@api.put("/bookings/<int:bid>")
+@api.put("/bookings/<int:booking_id>")
 @admin_required
-def update_booking(bid: int):
+def update_booking(booking_id: int):
     data = request.get_json(force=True)
     status = data.get("status")
     if status not in ("approved", "rejected"):
         return jsonify({"error": "Invalid status"}), 400
 
-    booking = get_booking(bid)
+    booking = booking_service.get_booking(booking_id)
     if not booking:
         return jsonify({"error": "Not found"}), 404
 
-    update_booking_status(bid, status)
+    booking_service.update_booking_status(booking_id, status)
     booking["status"] = status
     send_booking_notification(f"预约已{status}", serialize_booking(booking))
     return jsonify({"ok": True})
@@ -132,44 +116,14 @@ def update_booking(bid: int):
 @api.get("/stats")
 @admin_required
 def stats():
-    local_now = datetime.now()
-    today = local_now.date()
-
-    days = []
-    current_day = today
-    while len(days) < 5:
-        if current_day.weekday() < 5:
-            days.append(current_day)
-        current_day += timedelta(days=1)
-
-    start_iso = datetime.combine(today, datetime.min.time()).isoformat()
-    end_iso = datetime.combine(days[-1], datetime.max.time()).isoformat()
-    bookings = list_bookings(start_iso, end_iso)
-
-    by_day = {}
-    for booking in bookings:
-        day = booking["start_time"][:10]
-        by_day.setdefault(day, []).append(booking)
-
-    return jsonify(
-        {
-            "days": [str(day) for day in days],
-            "by_day": by_day,
-            "total": len(bookings),
-            "current_info": {
-                "current_date": today.isoformat(),
-                "current_time": local_now.strftime("%H:%M:%S"),
-                "last_updated": local_now.isoformat(),
-            },
-        }
-    )
+    return jsonify(booking_service.get_stats_summary())
 
 
 @api.post("/cleanup")
 @admin_required
 def manual_cleanup():
     try:
-        deleted_count = cleanup_database()
+        deleted_count = booking_service.cleanup_database()
         return jsonify(
             {
                 "success": True,
@@ -185,31 +139,6 @@ def manual_cleanup():
 @admin_required
 def database_info():
     try:
-        all_bookings = list_bookings()
-
-        now = datetime.utcnow()
-        one_week_ago = now - timedelta(days=7)
-        one_month_ago = now - timedelta(days=30)
-
-        total_count = len(all_bookings)
-        recent_week = len(
-            [booking for booking in all_bookings if booking["created_at"] >= one_week_ago.isoformat()]
-        )
-        recent_month = len(
-            [booking for booking in all_bookings if booking["created_at"] >= one_month_ago.isoformat()]
-        )
-        old_data = len(
-            [booking for booking in all_bookings if booking["created_at"] < one_month_ago.isoformat()]
-        )
-
-        return jsonify(
-            {
-                "total_bookings": total_count,
-                "recent_week": recent_week,
-                "recent_month": recent_month,
-                "old_data_count": old_data,
-                "cleanup_threshold": "Records older than 30 days can be cleaned manually or by the scheduler.",
-            }
-        )
+        return jsonify(booking_service.get_database_info())
     except Exception as exc:
         return jsonify({"error": f"Failed to load database info: {exc}"}), 500

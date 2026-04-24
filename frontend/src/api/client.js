@@ -1,6 +1,10 @@
 import axios from 'axios'
 
 const trimTrailingSlash = (value) => value.replace(/\/+$/, '')
+const DEPLOYMENT_API_MAP = {
+  'meetroom-gamma.vercel.app': 'https://meetroom-px0x.onrender.com',
+  'www.meetroom-gamma.vercel.app': 'https://meetroom-px0x.onrender.com'
+}
 
 const getApiBaseUrl = () => {
   const envValue = import.meta.env.VITE_API_BASE_URL
@@ -9,9 +13,22 @@ const getApiBaseUrl = () => {
   }
 
   if (typeof window !== 'undefined') {
-    const { hostname } = window.location
+    const runtimeValue = window.__APP_API_BASE_URL__
+    if (runtimeValue) {
+      return trimTrailingSlash(runtimeValue)
+    }
+
+    const { hostname, origin } = window.location
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:5000'
+    }
+
+    if (DEPLOYMENT_API_MAP[hostname]) {
+      return DEPLOYMENT_API_MAP[hostname]
+    }
+
+    if (hostname.endsWith('.onrender.com')) {
+      return trimTrailingSlash(origin)
     }
   }
 

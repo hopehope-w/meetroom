@@ -3,7 +3,7 @@
     <template #header>
       <div class="card-header">
         <div>
-          <p class="eyebrow">SQLite Snapshot</p>
+          <p class="eyebrow">Data Status</p>
           <h3>数据库概览</h3>
         </div>
         <el-space wrap>
@@ -12,6 +12,12 @@
         </el-space>
       </div>
     </template>
+
+    <div class="database-banner">
+      <span>当前存储</span>
+      <strong>SQLite</strong>
+      <p>本轮继续保持轻量存储，后续会通过数据访问层抽象迁移到 PostgreSQL。</p>
+    </div>
 
     <el-skeleton v-if="loadingInfo" :rows="4" animated />
 
@@ -107,8 +113,8 @@ onMounted(() => {
 <style scoped>
 .admin-card {
   border: none;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  box-shadow: 0 24px 54px rgba(16, 32, 39, 0.08);
 }
 
 .card-header {
@@ -123,12 +129,41 @@ onMounted(() => {
   font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: #176b5f;
 }
 
 h3 {
   margin: 0;
-  color: #0f172a;
+  color: #102027;
+}
+
+.database-banner {
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(242, 246, 249, 0.95), rgba(236, 243, 247, 0.95));
+}
+
+.database-banner span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5a6f78;
+}
+
+.database-banner strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 24px;
+  color: #102027;
+}
+
+.database-banner p {
+  margin: 0;
+  line-height: 1.7;
+  color: #5a6f78;
 }
 
 .stats-grid {

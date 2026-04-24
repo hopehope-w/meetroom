@@ -1,19 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import BookingPage from '../pages/BookingPage.vue'
 import AdminPage from '../pages/AdminPage.vue'
+import { appMeta } from '../utils/theme'
 
 const routes = [
   {
     path: '/',
     name: 'Booking',
     component: BookingPage,
-    meta: { title: '会议室预约' }
+    meta: { title: appMeta.bookingPageTitle }
   },
   {
     path: '/admin',
     name: 'Admin',
     component: AdminPage,
-    meta: { title: '管理员后台' }
+    meta: { title: appMeta.adminPageTitle }
   }
 ]
 
@@ -23,7 +24,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  document.title = `${to.meta.title || '会议室预约'} - 211 会议室`
+  document.title = to.meta.title || appMeta.title
   next()
 })
 

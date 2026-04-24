@@ -1,15 +1,15 @@
-from datetime import datetime
-
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from models import cleanup_database, delete_past_bookings
+from repositories import BookingRepository
+from services import BookingService
 
 scheduler = BackgroundScheduler()
+booking_service = BookingService(BookingRepository())
 
 
 def start_scheduler():
     scheduler.add_job(
-        lambda: delete_past_bookings(datetime.utcnow().isoformat()),
+        booking_service.delete_past_bookings,
         "interval",
         days=1,
         id="cleanup_expired_bookings",
@@ -17,7 +17,7 @@ def start_scheduler():
     )
 
     scheduler.add_job(
-        cleanup_database,
+        booking_service.cleanup_database,
         "cron",
         day_of_week=6,
         hour=3,

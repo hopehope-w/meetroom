@@ -10,8 +10,22 @@
       </div>
     </template>
 
-    <el-skeleton v-if="loading" :rows="4" animated />
+    <div class="summary-strip">
+      <div>
+        <span>房间</span>
+        <strong>{{ ROOM_LABEL }}</strong>
+      </div>
+      <div>
+        <span>可见范围</span>
+        <strong>未来 30 天</strong>
+      </div>
+      <div>
+        <span>当前记录</span>
+        <strong>{{ bookings.length }} 条</strong>
+      </div>
+    </div>
 
+    <el-skeleton v-if="loading" :rows="4" animated />
     <el-empty v-else-if="bookings.length === 0" description="暂无未来预约" />
 
     <div v-else class="booking-list">
@@ -25,6 +39,7 @@
             {{ getStatusLabel(booking.status) }}
           </el-tag>
         </div>
+
         <dl class="meta-grid">
           <div>
             <dt>开始</dt>
@@ -43,25 +58,12 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import { bookingAPI } from '../api/booking'
+import { formatDateTime, getStatusLabel, getStatusType, ROOM_LABEL } from '../utils/helpers'
 
 const bookings = ref([])
 const loading = ref(false)
 
 let pollTimer = null
-
-const formatDateTime = (dateString) => dateString.replace('T', ' ').slice(0, 16)
-
-const getStatusType = (status) => {
-  if (status === 'approved') return 'success'
-  if (status === 'rejected') return 'danger'
-  return 'warning'
-}
-
-const getStatusLabel = (status) => {
-  if (status === 'approved') return '已批准'
-  if (status === 'rejected') return '已拒绝'
-  return '待审批'
-}
 
 const refresh = async () => {
   loading.value = true
@@ -95,8 +97,8 @@ onUnmounted(() => {
 <style scoped>
 .panel-card {
   border: none;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  box-shadow: 0 24px 54px rgba(16, 32, 39, 0.08);
 }
 
 .card-header {
@@ -111,13 +113,39 @@ onUnmounted(() => {
   font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: #176b5f;
 }
 
 h2 {
   margin: 0;
   font-size: 22px;
-  color: #0f172a;
+  color: #102027;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.summary-strip > div {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(243, 247, 249, 0.92);
+}
+
+.summary-strip span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a6f78;
+}
+
+.summary-strip strong {
+  color: #102027;
 }
 
 .booking-list {
@@ -127,9 +155,9 @@ h2 {
 
 .booking-item {
   padding: 18px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(240, 249, 255, 0.9));
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 249, 0.94));
+  border: 1px solid rgba(19, 38, 44, 0.06);
 }
 
 .booking-item__top {
@@ -142,12 +170,12 @@ h2 {
 
 .booking-item h3 {
   margin: 0;
-  color: #0f172a;
+  color: #102027;
 }
 
 .booking-item p {
   margin: 6px 0 0;
-  color: #475569;
+  color: #5a6f78;
 }
 
 .meta-grid {
@@ -161,15 +189,16 @@ h2 {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #0f766e;
+  color: #176b5f;
 }
 
 .meta-grid dd {
   margin: 6px 0 0;
-  color: #0f172a;
+  color: #102027;
 }
 
 @media (max-width: 768px) {
+  .summary-strip,
   .meta-grid {
     grid-template-columns: 1fr;
   }

@@ -7,7 +7,8 @@ from flask_cors import CORS
 
 from auth import generate_token, hash_password
 from config import ADMIN_PASSWORD, ADMIN_USERNAME, CORS_ORIGINS, DB_PATH, DEFAULT_ROOMS
-from models import init_db, seed_admin_and_room
+from models import init_db
+from repositories import RoomRepository, UserRepository
 from routes import api
 from scheduler import start_scheduler
 
@@ -15,12 +16,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def seed_admin_and_room(admin_username: str, password: str, rooms: list[dict]) -> None:
+    user_repository = UserRepository()
+    room_repository = RoomRepository()
+    user_repository.ensure_admin(admin_username, hash_password(password))
+    room_repository.ensure_rooms(rooms)
+
+
 def create_app():
     app = Flask(__name__, static_folder='static', static_url_path='')
     CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
 
     init_db()
-    seed_admin_and_room(ADMIN_USERNAME, hash_password(ADMIN_PASSWORD), DEFAULT_ROOMS)
+    seed_admin_and_room(ADMIN_USERNAME, ADMIN_PASSWORD, DEFAULT_ROOMS)
     app.register_blueprint(api)
 
     @app.route("/")

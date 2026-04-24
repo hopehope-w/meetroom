@@ -3,12 +3,16 @@
     <template #header>
       <div class="card-header">
         <div>
-          <p class="eyebrow">Create Booking</p>
+          <p class="eyebrow">New Request</p>
           <h2>提交预约申请</h2>
         </div>
-        <el-tag type="success" effect="dark">Room 211</el-tag>
+        <el-tag type="success" effect="dark">{{ ROOM_LABEL }}</el-tag>
       </div>
     </template>
+
+    <div class="panel-intro">
+      <p>填写预约人和时间段即可提交申请，系统会先检查冲突，再进入管理员审批。</p>
+    </div>
 
     <el-form label-position="top" class="booking-form" @submit.prevent="submit">
       <el-form-item label="预约人">
@@ -63,6 +67,7 @@ import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { bookingAPI } from '../api/booking'
 import { useNotificationStore } from '../stores/notification'
+import { ROOM_LABEL } from '../utils/helpers'
 
 const notification = useNotificationStore()
 
@@ -109,7 +114,7 @@ const submit = async () => {
       end_time: form.end_time
     })
 
-    status.message = '预约已提交，等待管理员审批'
+    status.message = `${ROOM_LABEL}预约已提交，等待管理员审批`
     status.type = 'success'
     notification.showNotification('预约提交成功，等待审批', 'success')
     resetForm()
@@ -155,8 +160,8 @@ const checkConflict = async () => {
 <style scoped>
 .panel-card {
   border: none;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  box-shadow: 0 24px 54px rgba(16, 32, 39, 0.08);
 }
 
 .card-header {
@@ -171,13 +176,26 @@ const checkConflict = async () => {
   font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: #176b5f;
 }
 
 h2 {
   margin: 0;
   font-size: 22px;
-  color: #0f172a;
+  color: #102027;
+}
+
+.panel-intro {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(246, 249, 251, 0.95), rgba(238, 244, 247, 0.95));
+}
+
+.panel-intro p {
+  margin: 0;
+  color: #5a6f78;
+  line-height: 1.7;
 }
 
 .booking-form {
@@ -192,7 +210,8 @@ h2 {
 }
 
 @media (max-width: 768px) {
-  .actions {
+  .actions,
+  .card-header {
     flex-direction: column;
   }
 }

@@ -4,7 +4,7 @@ from datetime import datetime
 from urllib import request
 from urllib.error import HTTPError, URLError
 
-from config import APP_BASE_URL, FEISHU_WEBHOOK_URL, ROOM_211_NUMBER
+from config import APP_BASE_URL, DEFAULT_ROOM_NUMBER, FEISHU_WEBHOOK_URL
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ def _format_booking_message(event_name: str, booking: dict) -> str:
 
     return (
         f"{event_name}\n"
-        f"会议室: {ROOM_211_NUMBER}\n"
+        f"会议室: {DEFAULT_ROOM_NUMBER}\n"
         f"预约人: {booking.get('user_name', '-')}\n"
         f"部门: {department}\n"
         f"开始时间: {booking.get('start_time', '-')}\n"
