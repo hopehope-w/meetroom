@@ -16,7 +16,7 @@
     <div class="database-banner">
       <span>当前存储</span>
       <strong>SQLite</strong>
-      <p>本轮继续保持轻量存储，后续会通过数据访问层抽象迁移到 PostgreSQL。</p>
+      <p>当前版本仍保持轻量存储。数据库持久化问题已确认为后续改进项，本轮界面不再扩展复杂说明。</p>
     </div>
 
     <el-skeleton v-if="loadingInfo" :rows="4" animated />
@@ -168,7 +168,7 @@ h3 {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -177,10 +177,6 @@ h3 {
 }
 
 @media (max-width: 960px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .card-header {
     flex-direction: column;
   }

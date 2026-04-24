@@ -7,7 +7,7 @@
         <div>
           <p class="eyebrow">Admin Console</p>
           <h2>{{ ROOM_LABEL }}审批后台</h2>
-          <p>集中处理待审批预约，快速查看近期排期和当前数据库状态。</p>
+          <p>集中处理待审批预约，快速查看近期排期和当前系统状态。</p>
         </div>
 
         <div class="admin-summary">
@@ -16,17 +16,29 @@
             <strong>已验证</strong>
           </div>
           <div class="admin-summary__card">
-            <span>密码管理</span>
-            <strong>通过 Render 环境变量重置</strong>
+            <span>待办焦点</span>
+            <strong>审批优先，清理次之</strong>
           </div>
         </div>
 
         <el-button type="danger" plain @click="logout">退出登录</el-button>
       </section>
 
-      <AdminStats />
-      <AdminApproval />
-      <AdminDatabase />
+      <div class="admin-grid">
+        <section class="admin-grid__main">
+          <AdminApproval />
+          <AdminStats />
+        </section>
+
+        <aside class="admin-grid__side">
+          <div class="side-note">
+            <p class="side-note__label">后续改进计划</p>
+            <h3>数据持久化</h3>
+            <p>当前数据无法稳定持久化保存，根因在 SQLite 部署形态。页面先保持轻量，后续再迁移至 PostgreSQL。</p>
+          </div>
+          <AdminDatabase />
+        </aside>
+      </div>
     </div>
   </section>
 </template>
@@ -116,6 +128,53 @@ onMounted(() => {
   color: #102027;
 }
 
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.92fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.admin-grid__main,
+.admin-grid__side {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.side-note {
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(244, 246, 240, 0.96), rgba(239, 243, 235, 0.96));
+  border: 1px solid rgba(78, 103, 73, 0.08);
+  box-shadow: 0 16px 34px rgba(16, 32, 39, 0.05);
+}
+
+.side-note__label {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #4f6d53;
+}
+
+.side-note h3 {
+  margin: 0 0 10px;
+  color: #102027;
+}
+
+.side-note p:last-child {
+  margin: 0;
+  line-height: 1.7;
+  color: #5a6f78;
+}
+
+@media (max-width: 1100px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .admin-hero {
     grid-template-columns: 1fr;
@@ -130,6 +189,10 @@ onMounted(() => {
 @media (max-width: 768px) {
   .admin-hero {
     padding: 20px 18px;
+  }
+
+  .side-note {
+    padding: 18px;
   }
 }
 </style>

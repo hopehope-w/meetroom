@@ -1,11 +1,29 @@
 <template>
   <div class="login-shell">
+    <section class="login-hero">
+      <div class="login-hero__copy">
+        <p class="eyebrow">Admin Access</p>
+        <h2>{{ ROOM_LABEL }}管理后台</h2>
+        <p>轻量处理待审批预约，快速查看近期排期。忘记密码时，通过 Render 环境变量重置即可。</p>
+      </div>
+
+      <div class="login-hero__tips">
+        <div class="tip-card">
+          <span>适合场景</span>
+          <strong>快速审批与巡检</strong>
+        </div>
+        <div class="tip-card">
+          <span>密码恢复</span>
+          <strong>重置 `ADMIN_PASSWORD`</strong>
+        </div>
+      </div>
+    </section>
+
     <el-card class="login-card">
       <template #header>
         <div class="login-header">
-          <p class="eyebrow">Admin Access</p>
-          <h2>{{ ROOM_LABEL }}管理后台</h2>
-          <p>使用管理员账号登录后即可审批预约。若忘记密码，请在 Render 中重置 `ADMIN_PASSWORD`。</p>
+          <p class="eyebrow">Sign In</p>
+          <h3>管理员登录</h3>
         </div>
       </template>
 
@@ -33,7 +51,7 @@
         />
 
         <el-button type="primary" :loading="loading" class="submit-btn" @click="login">
-          登录
+          登录后台
         </el-button>
       </el-form>
     </el-card>
@@ -80,12 +98,82 @@ const login = async () => {
 
 <style scoped>
 .login-shell {
-  padding-top: 16px;
+  display: grid;
+  gap: 18px;
+  padding-top: 6px;
+}
+
+.login-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.9fr);
+  gap: 18px;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(16, 33, 39, 0.95) 0%, rgba(24, 86, 80, 0.88) 100%);
+  box-shadow: 0 24px 56px rgba(16, 32, 39, 0.16);
+  color: #fff;
+}
+
+.login-hero__copy {
+  display: grid;
+  gap: 10px;
+}
+
+.login-hero__copy h2 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.08;
+}
+
+.login-hero__copy p:last-child {
+  margin: 0;
+  max-width: 620px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #176b5f;
+}
+
+.login-hero .eyebrow {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.login-hero__tips {
+  display: grid;
+  gap: 12px;
+}
+
+.tip-card {
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.tip-card span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.tip-card strong {
+  color: #fff;
 }
 
 .login-card {
-  max-width: 540px;
+  max-width: 640px;
   margin: 0 auto;
+  width: 100%;
   border: none;
   border-radius: 28px;
   box-shadow: 0 28px 60px rgba(16, 32, 39, 0.12);
@@ -96,27 +184,29 @@ const login = async () => {
   gap: 8px;
 }
 
-.login-header h2 {
+.login-header h3 {
   margin: 0;
   color: #102027;
-}
-
-.login-header p:last-child {
-  margin: 0;
-  color: #5a6f78;
-  line-height: 1.7;
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #176b5f;
 }
 
 .submit-btn {
   width: 100%;
   margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .login-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-hero {
+    padding: 22px 18px;
+  }
+
+  .login-hero__copy h2 {
+    font-size: 28px;
+  }
 }
 </style>

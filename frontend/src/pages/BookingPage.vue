@@ -15,10 +15,6 @@
           <strong>{{ ROOM_LABEL }}</strong>
         </div>
         <div class="hero-panel__item">
-          <span>规则</span>
-          <strong>冲突自动校验</strong>
-        </div>
-        <div class="hero-panel__item">
           <span>状态</span>
           <strong>提交后进入审批</strong>
         </div>
@@ -50,7 +46,7 @@ import { ROOM_LABEL } from '../utils/helpers'
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(250px, 0.75fr);
   gap: 20px;
   padding: 32px;
   border-radius: 30px;
@@ -90,11 +86,11 @@ import { ROOM_LABEL } from '../utils/helpers'
 .hero-panel {
   display: grid;
   gap: 14px;
-  align-self: stretch;
+  align-self: center;
 }
 
 .hero-panel__item {
-  padding: 18px 20px;
+  padding: 20px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -111,7 +107,7 @@ import { ROOM_LABEL } from '../utils/helpers'
 }
 
 .hero-panel__item strong {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
 }
 
