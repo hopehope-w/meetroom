@@ -1,22 +1,9 @@
 <template>
   <div class="login-shell">
     <section class="login-hero">
-      <div class="login-hero__copy">
-        <p class="eyebrow">Admin Access</p>
-        <h2>{{ ROOM_LABEL }}管理后台</h2>
-        <p>轻量处理待审批预约，快速查看近期排期。忘记密码时，通过 Render 环境变量重置即可。</p>
-      </div>
-
-      <div class="login-hero__tips">
-        <div class="tip-card">
-          <span>适合场景</span>
-          <strong>快速审批与巡检</strong>
-        </div>
-        <div class="tip-card">
-          <span>密码恢复</span>
-          <strong>重置 `ADMIN_PASSWORD`</strong>
-        </div>
-      </div>
+      <p class="eyebrow">Admin Access</p>
+      <h2>{{ ROOM_LABEL }}管理后台</h2>
+      <p class="login-copy">登录后可集中处理待审批预约，并查看当前后台状态。</p>
     </section>
 
     <el-card class="login-card">
@@ -67,7 +54,7 @@ import { ROOM_LABEL } from '../utils/helpers'
 const emit = defineEmits(['login-success'])
 
 const form = reactive({
-  username: 'zy',
+  username: '',
   password: ''
 })
 
@@ -105,9 +92,8 @@ const login = async () => {
 
 .login-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.9fr);
-  gap: 18px;
-  padding: 28px;
+  gap: 10px;
+  padding: 30px 32px;
   border-radius: 28px;
   background:
     linear-gradient(135deg, rgba(16, 33, 39, 0.95) 0%, rgba(24, 86, 80, 0.88) 100%);
@@ -115,22 +101,10 @@ const login = async () => {
   color: #fff;
 }
 
-.login-hero__copy {
-  display: grid;
-  gap: 10px;
-}
-
-.login-hero__copy h2 {
+.login-hero h2 {
   margin: 0;
   font-size: 34px;
   line-height: 1.08;
-}
-
-.login-hero__copy p:last-child {
-  margin: 0;
-  max-width: 620px;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.84);
 }
 
 .eyebrow {
@@ -145,29 +119,11 @@ const login = async () => {
   color: rgba(255, 255, 255, 0.68);
 }
 
-.login-hero__tips {
-  display: grid;
-  gap: 12px;
-}
-
-.tip-card {
-  padding: 18px 20px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.tip-card span {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.68);
-}
-
-.tip-card strong {
-  color: #fff;
+.login-copy {
+  margin: 0;
+  max-width: 620px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.84);
 }
 
 .login-card {
@@ -194,18 +150,12 @@ const login = async () => {
   margin-top: 8px;
 }
 
-@media (max-width: 900px) {
-  .login-hero {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 768px) {
   .login-hero {
     padding: 22px 18px;
   }
 
-  .login-hero__copy h2 {
+  .login-hero h2 {
     font-size: 28px;
   }
 }

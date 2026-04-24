@@ -10,17 +10,6 @@
           <p>集中处理待审批预约，快速查看近期排期和当前系统状态。</p>
         </div>
 
-        <div class="admin-summary">
-          <div class="admin-summary__card">
-            <span>登录状态</span>
-            <strong>已验证</strong>
-          </div>
-          <div class="admin-summary__card">
-            <span>待办焦点</span>
-            <strong>审批优先，清理次之</strong>
-          </div>
-        </div>
-
         <el-button type="danger" plain @click="logout">退出登录</el-button>
       </section>
 
@@ -74,10 +63,10 @@ onMounted(() => {
 }
 
 .admin-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr) auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   gap: 16px;
-  align-items: end;
   padding: 24px 28px;
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.8);
@@ -101,31 +90,6 @@ onMounted(() => {
 .admin-hero p {
   margin: 10px 0 0;
   color: #5a6f78;
-}
-
-.admin-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.admin-summary__card {
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(243, 248, 250, 0.95), rgba(235, 243, 247, 0.95));
-}
-
-.admin-summary__card span {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #5a6f78;
-}
-
-.admin-summary__card strong {
-  color: #102027;
 }
 
 .admin-grid {
@@ -175,19 +139,10 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 960px) {
-  .admin-hero {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-
-  .admin-summary {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 768px) {
   .admin-hero {
+    flex-direction: column;
+    align-items: stretch;
     padding: 20px 18px;
   }
 
