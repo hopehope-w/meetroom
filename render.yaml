@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: meetroom-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_USERNAME
+        value: zy
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FEISHU_WEBHOOK_URL
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
